@@ -1,0 +1,25 @@
+plugins {
+    id 'java'
+    id 'edu.sc.seis.launch4j' version '2.4.4'
+}
+
+group 'com.williamquast'
+version '0.1'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+
+    compile 'com.drewnoakes:metadata-extractor:2.11.0'
+}
+
+launch4j {
+    mainClassName = 'com.williamquast.Application'
+    icon = "${projectDir}/src/main/resources/app.ico"
+    headerType = 'console'
+}

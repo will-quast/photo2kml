@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane maxHeight="5000" maxWidth="5000" minHeight="0.0" minWidth="0.0" prefHeight="200.0" prefWidth="300.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.williamquast.MainController">
+   <top>
+      <MenuBar id="menuBar" BorderPane.alignment="CENTER">
+        <menus>
+          <Menu mnemonicParsing="false" text="File">
+            <items>
+                  <MenuItem id="searchDirectoryMenuItem" mnemonicParsing="false" onAction="#onSearchDirectoryMenuItem" text="Search Directory" />
+                  <MenuItem mnemonicParsing="false" onAction="#onExportAllAsKmlMenuItem" text="Save all to KML" />
+              <MenuItem mnemonicParsing="false" onAction="#onCloseButton" text="Close" />
+            </items>
+          </Menu>
+          <Menu mnemonicParsing="false" text="Edit">
+            <items>
+              <MenuItem mnemonicParsing="false" text="Delete" />
+            </items>
+          </Menu>
+          <Menu mnemonicParsing="false" text="Help">
+            <items>
+              <MenuItem mnemonicParsing="false" text="About" />
+            </items>
+          </Menu>
+        </menus>
+      </MenuBar>
+   </top>
+   <center>
+      <TableView id="tableView" fx:id="tableView" BorderPane.alignment="CENTER">
+        <columns>
+          <TableColumn fx:id="filenameColumn" prefWidth="200.0" text="Filename" />
+          <TableColumn fx:id="resultColumn" prefWidth="300.0" text="Result" />
+        </columns>
+      </TableView>
+   </center>
+   <bottom>
+      <BorderPane id="statusBar" BorderPane.alignment="CENTER">
+         <left>
+            <Label id="statusLabel" fx:id="statusLabel" text="Loading..." BorderPane.alignment="CENTER">
+               <BorderPane.margin>
+                  <Insets left="3.0" right="3.0" />
+               </BorderPane.margin></Label>
+         </left>
+         <right>
+            <HBox BorderPane.alignment="CENTER">
+               <children>
+                  <ProgressBar fx:id="progressBar" prefWidth="100.0" progress="0.0">
+                     <HBox.margin>
+                        <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
+                     </HBox.margin>
+                  </ProgressBar>
+                  <Button id="cancelButton" fx:id="cancelButton" mnemonicParsing="false" onAction="#onCancelButton" text="Cancel">
+                     <HBox.margin>
+                        <Insets left="3.0" right="3.0" />
+                     </HBox.margin></Button>
+               </children>
+            </HBox>
+         </right>
+      </BorderPane>
+   </bottom>
+</BorderPane>
