@@ -35,7 +35,8 @@
       <TableView id="tableView" fx:id="tableView" BorderPane.alignment="CENTER">
         <columns>
           <TableColumn fx:id="filenameColumn" prefWidth="200.0" text="Filename" />
-          <TableColumn fx:id="resultColumn" prefWidth="300.0" text="Result" />
+            <TableColumn fx:id="timestampColumn" prefWidth="143.0" text="Timestamp" />
+          <TableColumn fx:id="resultColumn" prefWidth="232.0" text="Result" />
         </columns>
       </TableView>
    </center>

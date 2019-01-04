@@ -4,6 +4,7 @@ package com.williamquast;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 
 import java.awt.*;
@@ -32,6 +33,7 @@ public class Application extends javafx.application.Application {
             Scene scene = new Scene(root, width, height);
 
             primaryStage.setTitle("Photo2Kml");
+            primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/app.png")));
             primaryStage.setScene(scene);
             primaryStage.show();
 

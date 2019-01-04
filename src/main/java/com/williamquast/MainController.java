@@ -11,6 +11,7 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -19,6 +20,8 @@ import java.util.stream.Collectors;
 
 
 public class MainController {
+
+    private static final SimpleDateFormat TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss ZZZZ");
 
     @FXML
     private TableView<ExtractItem> tableView;
@@ -54,7 +57,8 @@ public class MainController {
         tableModel = FXCollections.observableArrayList();
         tableView.setItems(tableModel);
         filenameColumn.setCellValueFactory(new PropertyValueFactory<>("filename"));
-        timestampColumn.setCellValueFactory(new PropertyValueFactory<>("timestamp"));
+        timestampColumn.setCellValueFactory(param ->
+                new ReadOnlyObjectWrapper<>(TIMESTAMP_FORMAT.format(param.getValue().timestamp)));
         resultColumn.setCellValueFactory(param -> {
             ExtractItem item = param.getValue();
             if (item == null) {
