@@ -3,8 +3,7 @@ language: java
 deploy:
   provider: releases
   api_key: $github
-  file: "build/distribution/photo2kml-windows.zip"
+  file: "build/distributions/*"
   skip_cleanup: true
-  draft: true
   on:
     tags: true

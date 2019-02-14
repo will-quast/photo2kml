@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'edu.sc.seis.launch4j' version '2.4.4'
+    id 'edu.sc.seis.macAppBundle' version "2.3.0"
 }
 
 group 'com.williamquast'
@@ -18,18 +19,27 @@ dependencies {
     compile 'com.drewnoakes:metadata-extractor:2.11.0'
 }
 
+// for windows dist
 launch4j {
     mainClassName = 'com.williamquast.Application'
     icon = "${projectDir}/src/main/resources/app.ico"
-    headerType = 'console'
+    headerType = 'gui'
 }
 
-task createDistribution(type: Zip) {
+task createWindowsDist(type: Zip) {
     dependsOn(createAllExecutables)
-    from 'build/launch4j'
+    from "${project.buildDir}/launch4j"
     include '**/*'
-    archiveName "photo2kml-windows.zip"
-    destinationDir(file('build/distribution/'))
+    archiveName "${archivesBaseName}-win-${project.version}.zip"
+    destinationDir(file("${project.buildDir}/distributions/"))
 }
+assemble.dependsOn(createWindowsDist) // assemble includes windows
 
-assemble.finalizedBy(createDistribution)
+// for mac dist
+macAppBundle {
+    mainClassName = 'com.williamquast.Application'
+    icon = "${projectDir}/src/main/resources/app.ico"
+    dmgName = "${archivesBaseName}-mac-${project.version}"
+    javaProperties.put("apple.laf.useScreenMenuBar", "true")
+}
+assemble.dependsOn(createAppZip) // assemble includes mac
