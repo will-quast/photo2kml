@@ -23,3 +23,13 @@ launch4j {
     icon = "${projectDir}/src/main/resources/app.ico"
     headerType = 'console'
 }
+
+task createDistribution(type: Zip) {
+    dependsOn(createAllExecutables)
+    from 'build/launch4j'
+    include '**/*'
+    archiveName "photo2kml-windows.zip"
+    destinationDir(file('build/distribution/'))
+}
+
+build.finalizedBy(createDistribution)
