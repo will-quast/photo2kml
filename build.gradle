@@ -32,4 +32,4 @@ task createDistribution(type: Zip) {
     destinationDir(file('build/distribution/'))
 }
 
-build.finalizedBy(createDistribution)
+assemble.finalizedBy(createDistribution)
