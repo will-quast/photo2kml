@@ -1,13 +1,9 @@
 plugins {
     id 'java'
+    id 'application'
     id 'edu.sc.seis.launch4j' version '2.4.4'
-    id 'edu.sc.seis.macAppBundle' version "2.3.0"
+    id 'edu.sc.seis.macAppBundle' version '2.3.0'
 }
-
-group 'com.williamquast'
-version '0.1'
-
-sourceCompatibility = 1.8
 
 repositories {
     mavenCentral()
@@ -19,6 +15,17 @@ dependencies {
     compile 'com.drewnoakes:metadata-extractor:2.11.0'
 }
 
+sourceCompatibility = 1.8
+mainClassName = 'com.williamquast.Application'
+group 'com.williamquast'
+version '0.1'
+
+// for start script dist
+distZip {
+    archiveName "${archivesBaseName}-${project.version}-bin.zip"
+}
+distTar.enabled = false
+
 // for windows dist
 launch4j {
     mainClassName = 'com.williamquast.Application'
@@ -29,8 +36,9 @@ launch4j {
 task createWindowsDist(type: Zip) {
     dependsOn(createAllExecutables)
     from "${project.buildDir}/launch4j"
+    into "${archivesBaseName}"
     include '**/*'
-    archiveName "${archivesBaseName}-win-${project.version}.zip"
+    archiveName "${archivesBaseName}-${project.version}-win.zip"
     destinationDir(file("${project.buildDir}/distributions/"))
 }
 assemble.dependsOn(createWindowsDist) // assemble includes windows
@@ -39,7 +47,7 @@ assemble.dependsOn(createWindowsDist) // assemble includes windows
 macAppBundle {
     mainClassName = 'com.williamquast.Application'
     icon = "${projectDir}/src/main/resources/app.ico"
-    dmgName = "${archivesBaseName}-mac-${project.version}"
+    dmgName = "${archivesBaseName}-${project.version}-mac"
     javaProperties.put("apple.laf.useScreenMenuBar", "true")
 }
 assemble.dependsOn(createAppZip) // assemble includes mac
