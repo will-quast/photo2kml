@@ -8,6 +8,8 @@ import com.drew.metadata.exif.ExifIFD0Directory;
 import com.drew.metadata.exif.ExifSubIFDDirectory;
 import com.drew.metadata.exif.GpsDirectory;
 import javafx.application.Platform;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,6 +26,8 @@ public class PhotoLocationWorker {
 
     private static final int THREAD_COUNT = 2;
     private static final long TESTING_DELAY = 0;
+
+    private static final Logger log = LoggerFactory.getLogger(PhotoLocationWorker.class);
 
     private Thread supervisorThread = new Thread();
     private ExecutorService executorService =
@@ -55,6 +59,7 @@ public class PhotoLocationWorker {
     }
 
     private void processAndWait() {
+        log.info("Begin processAndWait. sourceDir=" + sourceDir.getAbsolutePath());
         if (sourceDir == null) throw new IllegalStateException("SourceDir is required.");
         if (finishListener == null) throw new IllegalStateException("FinishListener is required.");
         if (progressListener == null) throw new IllegalStateException("ProgressListener is required.");
@@ -70,13 +75,16 @@ public class PhotoLocationWorker {
 
             finish(new Result(foundItems.get(), processedItems.get()));
         } catch (InterruptedException ex) {
+            log.info("Supervisor thread was interrupted or cancelled. Abort.", ex);
             finish(new Result("Cancelled. (" + ex.getMessage() + ")", true));
         } catch (Exception ex) {
+            log.error("Supervisor thread had an exception while waiting.", ex);
             finish(new Result("Unknown error. (" + ex.getMessage() + ")"));
         } finally {
             // work is done, release threads
             executorService.shutdownNow();
         }
+        log.info("End processAndWait");
     }
 
     private synchronized void finish(final Result result) {
@@ -90,7 +98,7 @@ public class PhotoLocationWorker {
             finishListener.onFinished(result);
         });
 
-        System.out.println(getClass().getCanonicalName() + " found=" + foundItems.get() + " processed=" + processedItems.get());
+        log.info("finish. found=" + foundItems.get() + " processed=" + processedItems.get());
     }
 
     private synchronized void submitStatus() {
@@ -197,6 +205,7 @@ public class PhotoLocationWorker {
 
         @Override
         public void run() {
+            log.debug("SearchDirectoryRunnable. dir=" + dir.getPath());
             try {
                 if (!dir.canRead()) {
                     submitResult(new ExtractItem(dir.getPath(), null, "source is not readable. (permissions)"));
@@ -220,8 +229,12 @@ public class PhotoLocationWorker {
                             phaser.register(); // deregister in finally of ProcessPhotoFileRunnable
                             executorService.execute(new ProcessPhotoFileRunnable(file));
                         }
+                        // else ignore this file
                     }
                 }
+            } catch (Exception ex) {
+                log.error("SearchDirectoryRunnable failed.", ex);
+                submitResult(new ExtractItem(dir.getPath(), null, "Failed to search directory. (" + ex.getMessage() + ")" ));
             } finally {
                 phaser.arriveAndDeregister();
             }
@@ -243,6 +256,7 @@ public class PhotoLocationWorker {
 
         @Override
         public void run() {
+            log.debug("Begin ProcessPhotoFileRunnable. file=" + file.getName());
             try {
                 String fileName = null;
                 Date date = null;
@@ -258,7 +272,10 @@ public class PhotoLocationWorker {
 
                     Metadata metadata = ImageMetadataReader.readMetadata(file);
 
-                    metadata.getDirectories().forEach(directory -> System.out.println(directory.toString()));
+                    // log all readable meatadata for debug
+                    if (log.isDebugEnabled()) {
+                        metadata.getDirectories().forEach(directory -> log.debug(file.getName() + " : " + directory.toString()));
+                    }
 
                     Collection<GpsDirectory> gpsDirectories = metadata.getDirectoriesOfType(GpsDirectory.class);
                     Iterator<GpsDirectory> itr = gpsDirectories.iterator();
@@ -285,18 +302,21 @@ public class PhotoLocationWorker {
 
                             answer = new ExtractItem(fileName, date, waypoint);
                         } else {
-                            answer = new ExtractItem(fileName, date, "no GeoLocation data found.");
+                            answer = new ExtractItem(fileName, date, "No GeoLocation data found.");
                         }
                     } else {
-                        answer = new ExtractItem(fileName, date, "no GpsDirectory data found.");
+                        answer = new ExtractItem(fileName, date, "No GpsDirectory data found.");
                     }
 
                 } catch (ImageProcessingException ex) {
-                    answer = new ExtractItem(fileName, date, "failed to read photo metadata. (" + ex.getMessage() + ")");
+                    log.error("ProcessPhotoFileRunnable failed reading photo metadata.", ex);
+                    answer = new ExtractItem(fileName, date, "Failed to read photo metadata. (" + ex.getMessage() + ")");
                 } catch (IOException ex) {
-                    answer = new ExtractItem(fileName, date, "failed to read file. (" + ex.getMessage() + ")");
+                    log.error("ProcessPhotoFileRunnable failed reading file.", ex);
+                    answer = new ExtractItem(fileName, date, "Failed to read file. (" + ex.getMessage() + ")");
                 } catch (Exception ex) {
-                    answer = new ExtractItem(fileName, date, "unknown failure processing photo. (" + ex.getMessage() + ")");
+                    log.error("ProcessPhotoFileRunnable unknown failure.", ex);
+                    answer = new ExtractItem(fileName, date, "Unknown failure while processing file. (" + ex.getMessage() + ")");
                 }
 
                 submitResult(answer);
@@ -305,6 +325,7 @@ public class PhotoLocationWorker {
                 processedItems.incrementAndGet();
                 phaser.arriveAndDeregister();
             }
+
         }
 
         @Override

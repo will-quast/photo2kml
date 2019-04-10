@@ -6,24 +6,24 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.io.IOException;
-import java.net.URL;
 
 public class Application extends javafx.application.Application {
 
-
+    private static final Logger log = LoggerFactory.getLogger(Application.class);
 
     public static void main(String[] args) {
-        System.out.println("Starting Application");
+        log.info("Starting Application.");
         launch(args);
     }
 
     @Override
     public void start(Stage primaryStage) {
         try {
-
             FXMLLoader loader = new FXMLLoader();
             Parent root = loader.load(getClass().getResourceAsStream("/main.fxml"));
 
@@ -38,7 +38,7 @@ public class Application extends javafx.application.Application {
             primaryStage.show();
 
         } catch (IOException ex) {
-            ex.printStackTrace();
+            log.error("Failed to load application GUI.", ex);
         }
     }
 

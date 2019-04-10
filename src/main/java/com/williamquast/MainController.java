@@ -9,6 +9,8 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -22,6 +24,8 @@ import java.util.stream.Collectors;
 public class MainController {
 
     private static final SimpleDateFormat TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss ZZZZ");
+
+    private static final Logger log = LoggerFactory.getLogger(MainController.class);
 
     @FXML
     private TableView<ExtractItem> tableView;
@@ -45,6 +49,7 @@ public class MainController {
 
     @FXML
     public void initialize() {
+        log.info("initialize.");
         tableView.setPlaceholder(new Label("To begin, click File -> Search Directory..."));
         statusLabel.setText("Ready");
         progressBar.setProgress(0.0);
@@ -75,6 +80,7 @@ public class MainController {
 
     @FXML
     public void onSearchDirectoryMenuItem() {
+        log.debug("onSearchDirectoryMenuItem.");
         DirectoryChooser dirChooser = new DirectoryChooser();
         File sourceDir = dirChooser.showDialog(primaryStage);
         if (sourceDir != null) {
@@ -88,19 +94,16 @@ public class MainController {
 
     @FXML
     public void onExportAllAsKmlMenuItem() {
+        log.debug("onExportAllAsKmlMenuItem.");
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Select Export File");
         fileChooser.getExtensionFilters().add(
                 new FileChooser.ExtensionFilter("KML File (.kml)", "*.kml"));
         File saveFile = fileChooser.showSaveDialog(primaryStage);
         if (saveFile != null) {
-            List<ExtractItem> exportItems = tableModel
-                    .stream()
-                    .filter(ExtractItem::isSuccess)
-                    .sorted(Comparator.comparing(o -> o.getWaypoint().timestamp))
-                    .collect(Collectors.toList());
             kmlOutputWorker = new KmlOutputWorker()
-                    .items(exportItems)
+                    .items(tableModel)
+                    .sort(tableView.getComparator())
                     .outputFile(saveFile)
                     .callback(this::handleKmlOutputFinished)
                     .start();
@@ -110,6 +113,7 @@ public class MainController {
 
     @FXML
     public void onCancelButton() {
+        log.debug("onCancelButton.");
         if (kmlOutputWorker != null) {
             kmlOutputWorker.cancel();
             kmlOutputWorker = null;
@@ -122,6 +126,7 @@ public class MainController {
 
     @FXML
     public void onCloseButton() {
+        log.debug("onCloseButton.");
         onCancelButton();
         Stage stage = (Stage) cancelButton.getScene().getWindow();
         stage.close();
@@ -137,7 +142,7 @@ public class MainController {
         cancelButton.setVisible(false);
         photoLocationWorker = null;
 
-        System.out.println(getClass().getCanonicalName() + " tableModel.size=" + tableModel.size());
+        log.debug("handlePhotoLocationFinished. tableModel.size=" + tableModel.size());
     }
 
     private void handleProgressUpdated(int totalProgress, int currentProgress, List<ExtractItem> items) {
@@ -165,31 +170,4 @@ public class MainController {
         Alert alert = new Alert(Alert.AlertType.ERROR, string, ButtonType.OK);
         alert.show();
     }
-
-//    private void intiView() {
-
-//
-//        frame = new JFrame("Photo2KML");
-//        frame.setPreferredSize(new Dimension(width, height));
-//        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-//        frame.setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("/app.png")));
-//
-//        contentPanel = new JPanel(new GridBagLayout());
-//        tableModel = new TableModel();
-//        table = new JTable(tableModel);
-//        statusLabel = new JLabel();
-//        progressBar = new JProgressBar();
-//        cancelButton = new JButton();
-//
-//        GridBagConstraints c = new GridBagConstraints();
-//        c.fill = GridBagConstraints.HORIZONTAL;
-//        c.gridx = 0;
-//        c.gridy = 0;
-//        JScrollPane scrollPane = new JScrollPane(table, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-//        contentPanel.add(scrollPane, c);
-//
-//        frame.setContentPane(contentPanel);
-//        frame.pack();
-//        frame.setVisible(true);
-//    }
 }
