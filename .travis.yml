@@ -1,11 +1,15 @@
+os:
+  - windows
+  - osx
+  - linux
 language: java
-jdk: oraclejdk11
+jdk: oraclejdk14
 
 deploy:
   provider: releases
   api_key: $github
   file_glob: true
-  file: "build/distributions/*"
+  file: "build/jpackage/*"
   skip_cleanup: true
   on:
     tags: true
