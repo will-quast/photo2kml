@@ -11,8 +11,7 @@ install:
 
 jobs:
   include:
-    - stage: Assemble
-      script: ./gradlew assemble
+    - script: ./gradlew assemble
 
 deploy:
   provider: releases
