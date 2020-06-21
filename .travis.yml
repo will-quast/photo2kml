@@ -5,9 +5,9 @@ os:
 language: shell
 
 install:
-  - if [ $TRAVIS_OS_NAME = windows ]; then powershell Install-WindowsFeature Net-Framework-Core && choco install -y openjdk14 wixtoolset; fi;
+  - if [ $TRAVIS_OS_NAME = windows ]; then powershell Install-WindowsFeature Net-Framework-Core && choco install -y openjdk14 wixtoolset && refreshenv; fi;
   - if [ $TRAVIS_OS_NAME = linux ]; then sudo apt-get install -y fakeroot; fi;
-  - if [ $TRAVIS_OS_NAME = osx ]; then brew cask install adoptopenjdk14; fi;
+  - if [ $TRAVIS_OS_NAME = osx ]; then brew install oracle-jdk@14; fi;
 
 jobs:
   include:
