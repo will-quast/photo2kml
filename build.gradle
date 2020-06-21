@@ -43,6 +43,7 @@ jlink {
     }
     jpackage {
         if(os.isMacOsX()) {
+            println('JPackage using MacOSX options.')
             installerType = 'dmg'
             installerOptions = [
                     '--mac-sign',
@@ -50,9 +51,11 @@ jlink {
 //                  '--mac-signing-keychain', System.getenv('SIGNING_KEYCHAIN_PATH')
             ]
         } else if(os.isWindows()) {
+            println('JPackage using Windows options.')
             imageOptions = [ '--icon', 'src/main/resources/app.ico']
             installerOptions = ['--win-dir-chooser', '--win-menu', '--win-shortcut']
         } else if(os.isLinux()) {
+            println('JPackage using Linux options.')
             installerType = 'deb' // 'rpm'
         }
         installerOptions += '--verbose'
