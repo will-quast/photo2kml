@@ -3,12 +3,11 @@ os:
   - osx
   - linux
 language: shell
-jdk: openjdk14
 
 install:
-  - if [ $TRAVIS_OS_NAME = windows ]; then choco install openjdk14 wixtoolset; fi;
+  - if [ $TRAVIS_OS_NAME = windows ]; then choco install -y openjdk14 wixtoolset; fi;
   - if [ $TRAVIS_OS_NAME = linux ]; then sudo apt-get install -y fakeroot; fi;
-  - if [ $TRAVIS_OS_NAME = osx ]; then homebrew install openjdk14; fi;
+  - if [ $TRAVIS_OS_NAME = osx ]; then brew install openjdk 14; fi;
 
 jobs:
   include:
