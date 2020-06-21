@@ -7,17 +7,16 @@ language: shell
 install:
   - if [ $TRAVIS_OS_NAME = windows ]; then powershell Install-WindowsFeature Net-Framework-Core && choco install -y openjdk14 wixtoolset && refreshenv; fi;
   - if [ $TRAVIS_OS_NAME = linux ]; then sudo apt-get install -y fakeroot; fi;
-  - if [ $TRAVIS_OS_NAME = osx ]; then brew install oracle-jdk@14; fi;
+  - if [ $TRAVIS_OS_NAME = osx ]; then brew cask install oracle-jdk@14; fi;
 
 jobs:
   include:
     - script: ./gradlew assemble
-
-deploy:
-  provider: releases
-  api_key: $github
-  file_glob: true
-  file: "build/jpackage/*"
-  skip_cleanup: true
-  on:
-    tags: true
+      deploy:
+        provider: releases
+        api_key: $github
+        file_glob: true
+        file: "build/jpackage/*"
+        skip_cleanup: true
+        on:
+          tags: true
