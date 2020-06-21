@@ -2,12 +2,18 @@ os:
   - windows
   - osx
   - linux
-language: java
+language: shell
 jdk: openjdk14
 
 install:
   - if [ $TRAVIS_OS_NAME = windows ]; then choco install openjdk14 wixtoolset; fi;
   - if [ $TRAVIS_OS_NAME = linux ]; then sudo apt-get install -y fakeroot; fi;
+  - if [ $TRAVIS_OS_NAME = osx ]; then homebrew install openjdk14; fi;
+
+jobs:
+  include:
+    - stage: Assemble
+      script: ./gradlew assemble
 
 deploy:
   provider: releases
