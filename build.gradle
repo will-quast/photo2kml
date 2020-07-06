@@ -42,7 +42,7 @@ jlink {
         name = 'Photo2Kml'
     }
     jpackage {
-        outputDir = "installer"
+        outputDir = "distributions"
         imageName = 'Photo2Kml'
         skipInstaller = false
         installerName = 'Photo2Kml'
@@ -67,16 +67,3 @@ jlink {
     }
 }
 assemble.dependsOn(jpackage) // assemble includes jpackage
-
-
-
-//task createWindowsDist(type: Zip) {
-//    dependsOn(createAllExecutables)
-//    from "${project.buildDir}/launch4j"
-//    into "${archivesBaseName}"
-//    include '**/*'
-//    archiveName "${archivesBaseName}-${project.version}-win.zip"
-//    destinationDir(file("${project.buildDir}/distributions/"))
-//}
-//assemble.dependsOn(createWindowsDist) // assemble includes windows
-
