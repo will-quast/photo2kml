@@ -42,6 +42,11 @@ jlink {
         name = 'Photo2Kml'
     }
     jpackage {
+        outputDir = "installer"
+        imageName = 'Photo2Kml'
+        skipInstaller = false
+        installerName = 'Photo2Kml'
+
         if(os.isMacOsX()) {
             println('JPackage using MacOSX options.')
             installerType = 'dmg'
