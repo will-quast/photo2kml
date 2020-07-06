@@ -18,7 +18,7 @@ jobs:
         with:
           file: openjdk-14_osx-x64_bin.tar.gz
       - name: Build with Gradle
-        run: ./gradlew dist jpackage -Dbadass.jlink.jpackage.home=${GITHUB_WORKSPACE}/jdk-14.jdk/Contents/Home
+        run: ./gradlew assemble -Dbadass.jlink.jpackage.home=${GITHUB_WORKSPACE}/jdk-14.jdk/Contents/Home
       - name: Upload ZIP
         uses: actions/upload-artifact@v1
         with:
