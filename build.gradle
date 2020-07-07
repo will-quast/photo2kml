@@ -50,11 +50,11 @@ jlink {
         if(os.isMacOsX()) {
             println('JPackage using MacOSX options.')
 //            installerType = 'dmg'
-            installerOptions = [
-                    '--mac-sign',
+//            installerOptions = [
+//                    '--mac-sign',
 //                  '--mac-signing-key-user-name', System.getenv('SIGNING_KEY_USER_NAME'),
 //                  '--mac-signing-keychain', System.getenv('SIGNING_KEYCHAIN_PATH')
-            ]
+//            ]
         } else if(os.isWindows()) {
             println('JPackage using Windows options.')
             imageOptions = [ '--icon', 'src/main/resources/app.ico']
