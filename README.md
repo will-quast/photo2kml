@@ -25,4 +25,4 @@ The library [metadata-extractor](https://github.com/drewnoakes/metadata-extracto
    Google Earth™ is a trademark of Google Incorporated.  
    Java™ is a trademark of Oracle Incorporated.  
 
-[![Build Status](https://github.com/will-quast/photo2kml/workflows/.github/workflows/gradle.yml/badge.svg)](https://travis-ci.org/will-quast/photo2kml)
+![Build Distributions](https://github.com/will-quast/photo2kml/workflows/Build%20Distributions/badge.svg?branch=master&event=push)
