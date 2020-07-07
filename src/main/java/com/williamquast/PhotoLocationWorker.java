@@ -1,5 +1,7 @@
 package com.williamquast;
 
+import com.drew.imaging.FileType;
+import com.drew.imaging.FileTypeDetector;
 import com.drew.imaging.ImageMetadataReader;
 import com.drew.imaging.ImageProcessingException;
 import com.drew.lang.GeoLocation;
@@ -7,11 +9,14 @@ import com.drew.metadata.Metadata;
 import com.drew.metadata.exif.ExifIFD0Directory;
 import com.drew.metadata.exif.ExifSubIFDDirectory;
 import com.drew.metadata.exif.GpsDirectory;
+import com.drew.tools.FileUtil;
 import javafx.application.Platform;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -24,8 +29,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class PhotoLocationWorker {
 
-    private static final int THREAD_COUNT = 2;
-    private static final long TESTING_DELAY = 0;
+    private static final int THREAD_COUNT = 20; // count of thread to handle processing. mainly disk IO blocking, not CPU
+    private static final long TESTING_DELAY = 0; // ms delay used to simulate slow computers for manual UI testing
 
     private static final Logger log = LoggerFactory.getLogger(PhotoLocationWorker.class);
 
@@ -40,12 +45,12 @@ public class PhotoLocationWorker {
     private FinishListener finishListener;
     private ProgressListener progressListener;
 
-    private Phaser phaser = new Phaser();
+    private Phaser phaser = new Phaser(); // used to keep track of incomplete work in the executorService
     private AtomicInteger foundItems = new AtomicInteger();
     private AtomicInteger processedItems = new AtomicInteger();
 
-    private AtomicBoolean uiReady = new AtomicBoolean(true);
-    private List<ExtractItem> itemsBuffer = new ArrayList<>();
+    private AtomicBoolean uiReady = new AtomicBoolean(true); // used to prevent flooding the UI thread with updates
+    private List<ExtractItem> itemsBuffer = new ArrayList<>(); // items waiting to be handled over to the UI thread
 
     public PhotoLocationWorker start() {
         supervisorThread = new Thread(this::processAndWait);
@@ -185,6 +190,10 @@ public class PhotoLocationWorker {
         }
     }
 
+    /**
+     * Used by the tasks below to give a priority in the ExecutorService.
+     * For UI status purposes, we want Search tasks to complete before we do Processing tasks.
+     */
     private abstract class PriorityRunnable implements Runnable, Comparable<PriorityRunnable> {
 
         abstract int getPriority();
@@ -195,7 +204,10 @@ public class PhotoLocationWorker {
         }
     }
 
-    private class SearchDirectoryRunnable extends PriorityRunnable {
+    /**
+     * Task to determine if a file is a directory and recurse, or a regular file that can be processed.
+     */
+    protected class SearchDirectoryRunnable extends PriorityRunnable {
 
         private File dir;
 
@@ -207,11 +219,11 @@ public class PhotoLocationWorker {
         public void run() {
             log.debug("SearchDirectoryRunnable. dir=" + dir.getPath());
             try {
-                if (!dir.canRead()) {
-                    submitResult(new ExtractItem(dir.getPath(), null, "source is not readable. (permissions)"));
-                }
                 if (!dir.isDirectory()) {
-                    submitResult(new ExtractItem(dir.getPath(), null, "source is not a directory."));
+                    submitResult(new ExtractItem(dir.getPath(), null, "Source is not a directory."));
+                }
+                if (!dir.canRead()) {
+                    submitResult(new ExtractItem(dir.getPath(), null, "Source directory is not readable. (permissions)"));
                 }
 
                 testingDelay();
@@ -221,15 +233,16 @@ public class PhotoLocationWorker {
                         if (file.isDirectory()) {
                             phaser.register(); // deregister in finally of SearchDirectoryRunnable
                             executorService.execute(new SearchDirectoryRunnable(file));
-                        } else if (file.getName().toLowerCase().endsWith(".jpg")
-                                || file.getName().toLowerCase().endsWith(".jpeg")
-                                || file.getName().toLowerCase().endsWith(".png")) {
-                            foundItems.incrementAndGet();
-                            submitStatus();
-                            phaser.register(); // deregister in finally of ProcessPhotoFileRunnable
-                            executorService.execute(new ProcessPhotoFileRunnable(file));
+                        } else {
+                            if (file.canRead()) {
+                                foundItems.incrementAndGet();
+                                submitStatus();
+                                phaser.register(); // deregister in finally of ProcessPhotoFileRunnable
+                                executorService.execute(new ProcessPhotoFileRunnable(file));
+                            } else {
+                                submitResult(new ExtractItem(file.getName(), null, "Source file is not readable. (permissions)"));
+                            }
                         }
-                        // else ignore this file
                     }
                 }
             } catch (Exception ex) {
@@ -246,7 +259,10 @@ public class PhotoLocationWorker {
         }
     }
 
-    private class ProcessPhotoFileRunnable extends PriorityRunnable {
+    /**
+     * Task to process a single file for GeoLocation and send the ExtractItem to the UI queue
+     */
+    protected class ProcessPhotoFileRunnable extends PriorityRunnable {
 
         private File file;
 
@@ -267,56 +283,66 @@ public class PhotoLocationWorker {
                     BasicFileAttributes attr = Files.readAttributes (Paths.get(file.getPath()), BasicFileAttributes.class);
                     FileTime fileTime = attr.creationTime();
                     date = new Date(fileTime.toMillis());
-
                     fileName = file.getName();
 
-                    Metadata metadata = ImageMetadataReader.readMetadata(file);
+                    FileType fileType = detectFileType(file);
+                    if (fileType != FileType.Unknown) {
+                        Metadata metadata = ImageMetadataReader.readMetadata(file);
 
-                    // log all readable meatadata for debug
-                    if (log.isDebugEnabled()) {
-                        metadata.getDirectories().forEach(directory -> log.debug(file.getName() + " : " + directory.toString()));
-                    }
+                        // log all readable meatadata for debug
+                        if (log.isDebugEnabled()) {
+                            metadata.getDirectories().forEach(directory -> log.debug(file.getName() + " : " + directory.toString()));
+                        }
 
-                    Collection<GpsDirectory> gpsDirectories = metadata.getDirectoriesOfType(GpsDirectory.class);
-                    Iterator<GpsDirectory> itr = gpsDirectories.iterator();
-                    if (itr.hasNext()) {
-                        GpsDirectory gpsDirectory = itr.next();
-                        if (gpsDirectory != null && gpsDirectory.getGeoLocation() != null) {
-                            GeoLocation geoLocation = gpsDirectory.getGeoLocation();
+                        Collection<GpsDirectory> gpsDirectories = metadata.getDirectoriesOfType(GpsDirectory.class);
+                        Iterator<GpsDirectory> itr = gpsDirectories.iterator();
+                        if (itr.hasNext()) {
+                            GpsDirectory gpsDirectory = itr.next();
+                            if (gpsDirectory != null && gpsDirectory.getGeoLocation() != null) {
+                                GeoLocation geoLocation = gpsDirectory.getGeoLocation();
 
-                            // prefer to use GPS date
-                            date = gpsDirectory.getGpsDate();
+                                if (!geoLocation.isZero()) {
 
-                            // search for a fallback date not based on file date
-                            if (date == null) {
-                                ExifSubIFDDirectory directory = metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class);
-                                date = directory.getDate(ExifSubIFDDirectory.TAG_DATETIME_ORIGINAL);
+                                    // prefer to use GPS date
+                                    date = gpsDirectory.getGpsDate();
+
+                                    // search for a fallback date not based on file date
+                                    if (date == null) {
+                                        ExifSubIFDDirectory directory = metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class);
+                                        date = directory.getDate(ExifSubIFDDirectory.TAG_DATETIME_ORIGINAL);
+                                    }
+
+                                    if (date == null) {
+                                        ExifIFD0Directory directory = metadata.getFirstDirectoryOfType(ExifIFD0Directory.class);
+                                        date = directory.getDate(ExifIFD0Directory.TAG_DATETIME);
+                                    }
+
+                                    Waypoint waypoint = new Waypoint(fileName, date, geoLocation.getLongitude(), geoLocation.getLatitude());
+
+                                    // successful ExtractItem
+                                    answer = new ExtractItem(fileName, date, waypoint);
+                                } else {
+                                    answer = new ExtractItem(fileName, date, "GeoLocation data is invalid or corrupt. (lat/lng 0,0)");
+                                }
+                            } else {
+                                answer = new ExtractItem(fileName, date, "No GeoLocation data found.");
                             }
-
-                            if (date == null) {
-                                ExifIFD0Directory directory = metadata.getFirstDirectoryOfType(ExifIFD0Directory.class);
-                                date = directory.getDate(ExifIFD0Directory.TAG_DATETIME);
-                            }
-
-                            Waypoint waypoint = new Waypoint(fileName, date, geoLocation.getLongitude(), geoLocation.getLatitude());
-
-                            answer = new ExtractItem(fileName, date, waypoint);
                         } else {
-                            answer = new ExtractItem(fileName, date, "No GeoLocation data found.");
+                            answer = new ExtractItem(fileName, date, "No GpsDirectory data found.");
                         }
                     } else {
-                        answer = new ExtractItem(fileName, date, "No GpsDirectory data found.");
+                        answer = new ExtractItem(fileName, date, "Unknown media file type.");
                     }
 
                 } catch (ImageProcessingException ex) {
                     log.error("ProcessPhotoFileRunnable failed reading photo metadata.", ex);
-                    answer = new ExtractItem(fileName, date, "Failed to read photo metadata. (" + ex.getMessage() + ")");
+                    answer = new ExtractItem(fileName, date, "Failed to read photo metadata. (" + ex.getClass().getSimpleName() + " : " + ex.getMessage() + ")");
                 } catch (IOException ex) {
                     log.error("ProcessPhotoFileRunnable failed reading file.", ex);
-                    answer = new ExtractItem(fileName, date, "Failed to read file. (" + ex.getMessage() + ")");
+                    answer = new ExtractItem(fileName, date, "Failed to read file. (" + ex.getClass().getSimpleName() + " : " + ex.getMessage() + ")");
                 } catch (Exception ex) {
                     log.error("ProcessPhotoFileRunnable unknown failure.", ex);
-                    answer = new ExtractItem(fileName, date, "Unknown failure while processing file. (" + ex.getMessage() + ")");
+                    answer = new ExtractItem(fileName, date, "Unknown failure while processing file. (" + ex.getClass().getSimpleName() + " : " + ex.getMessage() + ")");
                 }
 
                 submitResult(answer);
@@ -326,6 +352,23 @@ public class PhotoLocationWorker {
                 phaser.arriveAndDeregister();
             }
 
+        }
+
+        /**
+         * Returns the FileType of the file using safe resource handling.
+         */
+        private FileType detectFileType(File file) throws IOException {
+            BufferedInputStream fileIn = null;
+            try {
+                fileIn = new BufferedInputStream(new FileInputStream(file));
+                return FileTypeDetector.detectFileType(fileIn);
+            } finally {
+                try {
+                    if (fileIn != null) {
+                        fileIn.close();
+                    }
+                } catch (Exception ex) { /* ignore */ }
+            }
         }
 
         @Override
