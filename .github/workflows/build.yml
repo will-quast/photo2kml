@@ -14,7 +14,7 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew assemble distZip
       - name: Upload Dist
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v2
         with:
           name: photo2kml
           path: build/distributions/*
@@ -35,7 +35,7 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew assemble -Dbadass.jlink.jpackage.home=${GITHUB_WORKSPACE}/jdk-14.jdk/Contents/Home
       - name: Upload Dist
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v2
         with:
           name: photo2kml
           path: build/distributions/*
@@ -50,7 +50,7 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew assemble
       - name: Upload Dist
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v2
         with:
           name: photo2kml
           path: build/distributions/*
